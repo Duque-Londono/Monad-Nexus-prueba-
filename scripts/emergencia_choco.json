@@ -1,0 +1,21 @@
+{
+  "familias": [
+    {"id": 1, "lat": 5690, "lng": -76660, "personas": 4},
+    {"id": 2, "lat": 5695, "lng": -76658, "personas": 7},
+    {"id": 3, "lat": 5688, "lng": -76662, "personas": 3},
+    {"id": 4, "lat": 5700, "lng": -76655, "personas": 5},
+    {"id": 5, "lat": 5685, "lng": -76665, "personas": 8},
+    {"id": 6, "lat": 5692, "lng": -76659, "personas": 2},
+    {"id": 7, "lat": 5680, "lng": -76670, "personas": 12},
+    {"id": 8, "lat": 5698, "lng": -76663, "personas": 4},
+    {"id": 9, "lat": 5696, "lng": -76663, "personas": 6},
+    {"id": 10, "lat": 5687, "lng": -76654, "personas": 5}
+  ],
+  "centros": [
+    {"id": 1, "nombre": "Bodega UNGRD Quibdo", "lat": 5694, "lng": -76661},
+    {"id": 2, "nombre": "Hospital San Francisco", "lat": 5690, "lng": -76660},
+    {"id": 3, "nombre": "Cruz Roja Istmina", "lat": 5685, "lng": -76650},
+    {"id": 4, "nombre": "Centro Logistica Condoto", "lat": 5698, "lng": -76665},
+    {"id": 5, "nombre": "Base Militar Tado", "lat": 5682, "lng": -76645}
+  ]
+}

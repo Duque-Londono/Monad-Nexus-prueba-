@@ -1,0 +1,5 @@
+# Variables de entorno (contiene claves privadas - NUNCA subir)
+.env
+
+# Dependencias de Node
+node_modules/
