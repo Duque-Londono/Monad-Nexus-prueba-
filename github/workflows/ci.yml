@@ -1,0 +1,79 @@
+name: CI — Verificación antes de merge
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-and-validate:
+    name: Validar código
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar sintaxis JS (node --check)
+        run: |
+          echo "🔍 Verificando archivos JavaScript..."
+          find . -name "*.js" \
+            ! -path "./node_modules/*" \
+            ! -path "./.git/*" \
+            -print0 | xargs -0 -I {} node --check {}
+          echo "✅ Sin errores de sintaxis en JS"
+
+      - name: Verificar que .env no fue commiteado
+        run: |
+          if git ls-files | grep -q "^\.env$"; then
+            echo "❌ ERROR: El archivo .env fue incluido en el commit. Nunca subas claves privadas."
+            exit 1
+          fi
+          echo "✅ .env no está en el repositorio"
+
+      - name: Verificar que no hay claves privadas hardcodeadas
+        run: |
+          echo "🔍 Buscando posibles claves privadas expuestas..."
+          if grep -rn "PRIVATE_KEY\s*=\s*0x[a-fA-F0-9]\{64\}" \
+            --include="*.js" \
+            --include="*.ts" \
+            --include="*.sol" \
+            --include="*.json" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git .; then
+            echo "❌ ERROR: Posible clave privada hardcodeada encontrada."
+            exit 1
+          fi
+          echo "✅ Sin claves privadas hardcodeadas"
+
+  validate-solidity:
+    name: Verificar contratos Solidity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar solc 0.8.20
+        run: |
+          pip install solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+
+      - name: Compilar contratos Solidity
+        run: |
+          echo "🔍 Compilando contratos..."
+          for file in contracts/*.sol; do
+            echo "  → Compilando $file"
+            solc --optimize "$file" > /dev/null
+          done
+          echo "✅ Todos los contratos compilan sin errores"
