@@ -1,0 +1,19 @@
+{
+  "endpoints": [
+    {"url": "https://api.gobierno.gov.co/v1/poblacion", "method": "GET", "status": "seguro"},
+    {"url": "https://api.gobierno.gov.co/v1/salud", "method": "GET", "status": "seguro"},
+    {"url": "https://api.gobierno.gov.co/v1/logistica", "method": "POST", "status": "vulnerable", "vulnerabilidad": "SQL Injection en campo id"},
+    {"url": "https://api.gobierno.gov.co/v1/usuarios", "method": "GET", "status": "vulnerable", "vulnerabilidad": "Sin autenticacion"},
+    {"url": "https://api.gobierno.gov.co/v1/inventario", "method": "PUT", "status": "seguro"},
+    {"url": "https://api.gobierno.gov.co/v1/pagos", "method": "POST", "status": "vulnerable", "vulnerabilidad": "No valida firmas"},
+    {"url": "https://api.gobierno.gov.co/v1/mapas", "method": "GET", "status": "seguro"},
+    {"url": "https://api.gobierno.gov.co/v1/alertas", "method": "POST", "status": "vulnerable", "vulnerabilidad": "XSS en parametro msg"},
+    {"url": "https://api.gobierno.gov.co/v1/reportes", "method": "GET", "status": "seguro"},
+    {"url": "https://api.gobierno.gov.co/v1/auth", "method": "POST", "status": "vulnerable", "vulnerabilidad": "Credenciales en texto plano"}
+  ],
+  "agentes": [
+    {"id": "IA-001", "nombre": "ScanBlocker", "version": "2.4.1", "accion": "Bloqueo automatico"},
+    {"id": "IA-002", "nombre": "FireWall Dinamico", "version": "1.8.3", "accion": "Filtrado inteligente"},
+    {"id": "IA-003", "nombre": "Auditor Virtual", "version": "3.0.0", "accion": "Analisis continuo"}
+  ]
+}

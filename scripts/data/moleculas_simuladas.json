@@ -1,0 +1,14 @@
+{
+  "moleculas": [
+    {"nombre": "Ribavirina", "interacciones": 142, "efectividad": 72},
+    {"nombre": "Favipiravir", "interacciones": 98, "efectividad": 65},
+    {"nombre": "Remdesivir", "interacciones": 215, "efectividad": 88},
+    {"nombre": "Molnupiravir", "interacciones": 76, "efectividad": 55},
+    {"nombre": "Paxlovid", "interacciones": 189, "efectividad": 91},
+    {"nombre": "Galidesivir", "interacciones": 54, "efectividad": 41},
+    {"nombre": "EIDD-2801", "interacciones": 132, "efectividad": 78},
+    {"nombre": "AT-527", "interacciones": 47, "efectividad": 35},
+    {"nombre": "PF-07321332", "interacciones": 167, "efectividad": 83},
+    {"nombre": "VV116", "interacciones": 91, "efectividad": 60}
+  ]
+}

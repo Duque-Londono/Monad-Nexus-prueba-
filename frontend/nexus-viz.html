@@ -1,452 +1,439 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monad Nexus - Coordinacion Descentralizada</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0f;
-            color: #e0e0e0;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-        }
-        #map {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1;
-            filter: brightness(0.7) saturate(0.5);
-        }
-        #overlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 2;
-            pointer-events: none;
-        }
-        #dashboard {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 3;
-            background: rgba(10,10,15,0.92);
-            border: 1px solid #333;
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-            min-width: 420px;
-            backdrop-filter: blur(10px);
-            pointer-events: all;
-        }
-        button {
-            background: linear-gradient(135deg, #00ff88, #00cc66);
-            color: #0a0a0f;
-            border: none;
-            padding: 15px 40px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            margin: 8px;
-            font-family: 'Courier New', monospace;
-            transition: all 0.3s;
-            pointer-events: all;
-        }
-        button:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0,255,136,0.5); }
-        button:disabled { background: #444; cursor: not-allowed; transform: none; box-shadow: none; }
-        button.donate-btn { background: linear-gradient(135deg, #ff4477, #cc2266); }
-        button.donate-btn:hover { box-shadow: 0 0 20px rgba(255,68,119,0.5); }
-        .counter { font-size: 42px; color: #00ff88; margin: 10px 0; font-weight: bold; }
-        .label { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 2px; }
-        .hash { font-size: 11px; color: #00ffcc; margin-top: 12px; word-break: break-all; }
-        .pulse { animation: pulse 2s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        #donation-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 4;
-            background: rgba(10,10,15,0.9);
-            border: 1px solid #00ff88;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            pointer-events: all;
-            min-width: 200px;
-        }
-        #donation-panel small { color: #888; font-size: 10px; }
-        #donation-panel .counter { font-size: 24px; }
-        .explosion { animation: explode 0.6s ease-out; }
-        @keyframes explode {
-            0% { transform: scale(0.5); opacity: 0.5; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monad Nexus</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0f; color:#e0e0e0; font-family:'Courier New',monospace; overflow:hidden; height:100vh; }
+#login-screen {
+  position:fixed; top:0; left:0; width:100%; height:100%; z-index:1000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:#0a0a0f;
+}
+#login-screen h1 { font-size:56px; color:#00ff88; font-weight:bold; text-shadow:0 0 30px rgba(0,255,136,0.6),0 0 60px rgba(0,255,136,0.3); animation:loginPulse 3s ease-in-out infinite; }
+@keyframes loginPulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+#login-screen p { font-size:14px; color:#888; letter-spacing:3px; text-transform:uppercase; margin-top:16px; }
+#login-screen .sep { width:300px; height:1px; background:#222; margin:32px auto; }
+#login-screen .error { display:none; color:#ff4477; font-size:13px; margin-top:16px; text-align:center; max-width:400px; }
+#login-screen .footer { position:absolute; bottom:24px; font-size:11px; color:#444; }
+#loginBtn {
+  background:linear-gradient(135deg,#00ff88,#00cc66); color:#0a0a0f; border:none;
+  padding:16px 48px; font-size:16px; font-weight:bold; border-radius:12px;
+  cursor:pointer; font-family:'Courier New',monospace; transition:all 0.3s;
+}
+#loginBtn:hover { transform:scale(1.05); box-shadow:0 0 24px rgba(0,255,136,0.5); }
+
+#dashboard { display:none; width:100vw; height:100vh; position:relative; }
+#topbar {
+  position:absolute; top:0; left:0; right:0; z-index:50; height:48px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; background:rgba(10,10,15,0.95); border-bottom:1px solid #222;
+}
+#topbar .wallet-info { display:flex; align-items:center; gap:16px; font-size:12px; color:#888; }
+#topbar .wallet-info span { color:#00ffcc; }
+#topbar .wallet-info .addr { color:#00ff88; font-weight:bold; }
+#topbar .wallet-info .balance { color:#00ff88; }
+#topbar .wallet-info .network { background:#222; padding:2px 8px; border-radius:4px; color:#00ff88; font-size:10px; }
+#disconnectBtn {
+  background:transparent; border:1px solid #ff4477; color:#ff4477; padding:4px 12px;
+  border-radius:6px; cursor:pointer; font-size:11px; font-family:'Courier New',monospace;
+}
+#demo-selector {
+  position:absolute; top:56px; left:20px; z-index:50;
+  background:rgba(10,10,15,0.92); border:1px solid #333; border-radius:12px;
+  padding:16px; min-width:220px; backdrop-filter:blur(10px);
+}
+#demo-selector label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px; display:block; margin-bottom:8px; }
+#demo-selector select {
+  width:100%; background:#1a1a24; color:#e0e0e0; border:1px solid #333;
+  padding:8px 12px; border-radius:8px; font-family:'Courier New',monospace; font-size:13px; cursor:pointer;
+}
+#demo-selector select:focus { outline:none; border-color:#00ff88; }
+
+#main-container { position:absolute; top:48px; left:0; right:0; bottom:0; z-index:1; }
+
+#control-panel {
+  position:absolute; bottom:20px; left:50%; transform:translateX(-50%); z-index:50;
+  background:rgba(10,10,15,0.92); border:1px solid #333; border-radius:16px;
+  padding:24px; text-align:center; min-width:420px; backdrop-filter:blur(10px);
+}
+#control-panel h2 { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+#control-panel .counter { font-size:42px; color:#00ff88; margin:10px 0; font-weight:bold; }
+#control-panel .status { font-size:11px; color:#00ffcc; margin-top:12px; word-break:break-all; }
+#control-panel button {
+  background:linear-gradient(135deg,#00ff88,#00cc66); color:#0a0a0f; border:none;
+  padding:15px 40px; font-size:16px; font-weight:bold; border-radius:12px;
+  cursor:pointer; margin:8px; font-family:'Courier New',monospace; transition:all 0.3s;
+}
+#control-panel button:hover { transform:scale(1.05); box-shadow:0 0 20px rgba(0,255,136,0.5); }
+#control-panel button:disabled { background:#444; cursor:not-allowed; transform:none; box-shadow:none; }
+#control-panel button.danger { background:linear-gradient(135deg,#ff4477,#cc2266); }
+#control-panel button.danger:hover { box-shadow:0 0 20px rgba(255,68,119,0.5); }
+
+#donation-panel {
+  position:absolute; top:56px; right:20px; z-index:50;
+  background:rgba(10,10,15,0.92); border:1px solid #00ff88; border-radius:12px;
+  padding:15px; text-align:center; backdrop-filter:blur(10px); min-width:180px;
+}
+#donation-panel .label { font-size:10px; color:#888; text-transform:uppercase; letter-spacing:2px; }
+#donation-panel .amount { font-size:20px; color:#00ff88; font-weight:bold; margin:6px 0; }
+#donation-panel button {
+  background:linear-gradient(135deg,#ff4477,#cc2266); color:#0a0a0f; border:none;
+  padding:8px 20px; font-size:12px; font-weight:bold; border-radius:8px;
+  cursor:pointer; font-family:'Courier New',monospace; transition:all 0.3s; margin-top:6px;
+}
+#donation-panel button:hover { box-shadow:0 0 20px rgba(255,68,119,0.5); }
+
+#rain-canvas {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  z-index:60; pointer-events:none; display:none;
+}
+.explosion { animation:explode 0.6s ease-out; }
+@keyframes explode { 0%{transform:scale(0.5);opacity:0.5} 50%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+.pulse { animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
 </head>
 <body>
-    <div id="map"></div>
-    <canvas id="overlay"></canvas>
 
-    <!-- Panel de donaciones -->
-    <div id="donation-panel">
-        <div class="label">Donaciones</div>
-        <div class="counter" id="donation-total">0.00 MON</div>
-        <button class="donate-btn" onclick="sendDonation()" style="padding:8px 20px; font-size:13px; margin-top:8px;">
-            DONAR 0.01 MON
-        </button>
-        <small style="display:block; margin-top:6px; word-break:break-all;" id="donation-address"></small>
+<div id="login-screen">
+  <h1>🛡️ MONAD NEXUS</h1>
+  <p>Conecta tu wallet para acceder al sistema</p>
+  <div class="sep"></div>
+  <button id="loginBtn">🔌 Conectar Wallet</button>
+  <div id="loginError" class="error"></div>
+  <div class="footer">Monad Testnet — Chain ID 10143</div>
+</div>
+
+<div id="dashboard">
+  <div id="topbar">
+    <div style="color:#00ff88;font-weight:bold;font-size:14px;">🛡️ Monad Nexus</div>
+    <div class="wallet-info">
+      <span>Wallet:</span><span class="addr" id="walletAddr">—</span>
+      <span>Saldo:</span><span class="balance" id="walletBalance">0 MON</span>
+      <span class="network">Monad Testnet</span>
+      <button id="disconnectBtn">Desconectar</button>
     </div>
+  </div>
 
-    <!-- Dashboard principal -->
-    <div id="dashboard">
-        <div class="label">Monad Nexus</div>
-        <div class="counter" id="task-counter">0 / 10</div>
-        <button id="connect-btn" onclick="connectWallet()">CONECTAR WALLET</button>
-        <button id="start-btn" disabled onclick="startCoordination()">INICIAR COORDINACION</button>
-        <button id="verify-btn" disabled onclick="verifyOnChain()">VERIFICAR ON-CHAIN</button>
-        <div class="hash" id="tx-hash"></div>
-        <div class="label" id="status">Conecta tu wallet en Monad Testnet</div>
-    </div>
+  <div id="demo-selector">
+    <label>Demo</label>
+    <select id="demoSelect">
+      <option value="logistica">🚚 Logística Humanitaria</option>
+      <option value="ciberseguridad">🛡️ Ciberseguridad</option>
+      <option value="farmaceutica">🧬 Farmacéutica</option>
+    </select>
+  </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <script src="./config.js"></script>
-    <script>
-        // ---- Estado global ----
-        let families = [];
-        let centers = [];
-        let map;
-        let markers = [];
-        let centerMarkers = [];
-        let provider;
-        let signer;
-        let engineContract;
-        let donationContract;
-        let userAddress;
-        let animationId;
+  <div id="main-container"></div>
 
-        // ---- Cargar datos ----
-        fetch('../scripts/emergencia_choco.json')
-            .then(r => r.json())
-            .then(data => {
-                families = data.familias;
-                centers = data.centros;
-                document.getElementById('task-counter').textContent = `0 / ${families.length}`;
-                initMap();
-            })
-            .catch(err => {
-                console.error('Error cargando datos:', err);
-                // Datos de respaldo
-                families = [
-                    {id:1,lat:5690,lng:-76660,personas:4},
-                    {id:2,lat:5695,lng:-76658,personas:7},
-                    {id:3,lat:5688,lng:-76662,personas:3},
-                    {id:4,lat:5700,lng:-76655,personas:5},
-                    {id:5,lat:5685,lng:-76665,personas:8},
-                    {id:6,lat:5692,lng:-76659,personas:2},
-                    {id:7,lat:5680,lng:-76670,personas:12},
-                    {id:8,lat:5698,lng:-76663,personas:4},
-                    {id:9,lat:5696,lng:-76663,personas:6},
-                    {id:10,lat:5687,lng:-76654,personas:5}
-                ];
-                centers = [
-                    {id:1,nombre:"Bodega UNGRD Quibdo",lat:5694,lng:-76661},
-                    {id:2,nombre:"Hospital San Francisco",lat:5690,lng:-76660},
-                    {id:3,nombre:"Cruz Roja Istmina",lat:5685,lng:-76650},
-                    {id:4,nombre:"Centro Logistica Condoto",lat:5698,lng:-76665},
-                    {id:5,nombre:"Base Militar Tado",lat:5682,lng:-76645}
-                ];
-                document.getElementById('task-counter').textContent = `0 / ${families.length}`;
-                initMap();
-            });
+  <div id="donation-panel">
+    <div class="label">Donaciones</div>
+    <div class="amount" id="donationTotal">0.00 MON</div>
+    <button id="donateBtn">DONAR 0.01 MON</button>
+  </div>
 
-        // ---- Inicializar mapa ----
-        function initMap() {
-            map = L.map('map', { zoomControl: false }).setView([5.691, -76.659], 13);
+  <div id="control-panel">
+    <h2>Monad Nexus — DeCompute Coordinativo</h2>
+    <div class="counter" id="taskCounter">0 / 0</div>
+    <button id="coordBtn">INICIAR COORDINACIÓN</button>
+    <button id="verifyBtn" class="danger" disabled>VERIFICAR ON-CHAIN</button>
+    <div class="status" id="statusMsg">Conecta tu wallet para comenzar</div>
+  </div>
+</div>
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: 'Monad Nexus | CartoDB'
-            }).addTo(map);
+<canvas id="rain-canvas"></canvas>
 
-            families.forEach(f => {
-                const marker = L.circleMarker([f.lat/1000, f.lng/1000], {
-                    radius: 6,
-                    color: '#ff2244',
-                    fillColor: '#ff2244',
-                    fillOpacity: 0.9,
-                    className: 'pulse'
-                }).addTo(map);
-                marker.bindPopup(`Familia #${f.id}<br>Personas: ${f.personas}`);
-                markers.push(marker);
-            });
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="./config.js"></script>
+<script src="renderers/map-renderer.js"></script>
+<script src="renderers/cards-renderer.js"></script>
+<script src="renderers/chart-renderer.js"></script>
+<script>
+// Datos embebidos — no requieren servidor
+var DATA_LOGISTICA = {"familias":[{"id":1,"lat":5690,"lng":-76660,"personas":4},{"id":2,"lat":5695,"lng":-76658,"personas":7},{"id":3,"lat":5688,"lng":-76662,"personas":3},{"id":4,"lat":5700,"lng":-76655,"personas":5},{"id":5,"lat":5685,"lng":-76665,"personas":8},{"id":6,"lat":5692,"lng":-76659,"personas":2},{"id":7,"lat":5680,"lng":-76670,"personas":12},{"id":8,"lat":5698,"lng":-76663,"personas":4},{"id":9,"lat":5696,"lng":-76663,"personas":6},{"id":10,"lat":5687,"lng":-76654,"personas":5}],"centros":[{"id":1,"nombre":"Bodega UNGRD Quibdo","lat":5694,"lng":-76661},{"id":2,"nombre":"Hospital San Francisco","lat":5690,"lng":-76660},{"id":3,"nombre":"Cruz Roja Istmina","lat":5685,"lng":-76650},{"id":4,"nombre":"Centro Logistica Condoto","lat":5698,"lng":-76665},{"id":5,"nombre":"Base Militar Tado","lat":5682,"lng":-76645}]};
+var DATA_CIBERSEGURIDAD = {"endpoints":[{"url":"https://api.gobierno.gov.co/v1/poblacion","method":"GET","status":"seguro"},{"url":"https://api.gobierno.gov.co/v1/salud","method":"GET","status":"seguro"},{"url":"https://api.gobierno.gov.co/v1/logistica","method":"POST","status":"vulnerable","vulnerabilidad":"SQL Injection en campo id"},{"url":"https://api.gobierno.gov.co/v1/usuarios","method":"GET","status":"vulnerable","vulnerabilidad":"Sin autenticacion"},{"url":"https://api.gobierno.gov.co/v1/inventario","method":"PUT","status":"seguro"},{"url":"https://api.gobierno.gov.co/v1/pagos","method":"POST","status":"vulnerable","vulnerabilidad":"No valida firmas"},{"url":"https://api.gobierno.gov.co/v1/mapas","method":"GET","status":"seguro"},{"url":"https://api.gobierno.gov.co/v1/alertas","method":"POST","status":"vulnerable","vulnerabilidad":"XSS en parametro msg"},{"url":"https://api.gobierno.gov.co/v1/reportes","method":"GET","status":"seguro"},{"url":"https://api.gobierno.gov.co/v1/auth","method":"POST","status":"vulnerable","vulnerabilidad":"Credenciales en texto plano"}],"agentes":[{"id":"IA-001","nombre":"ScanBlocker","version":"2.4.1","accion":"Bloqueo automatico"},{"id":"IA-002","nombre":"FireWall Dinamico","version":"1.8.3","accion":"Filtrado inteligente"},{"id":"IA-003","nombre":"Auditor Virtual","version":"3.0.0","accion":"Analisis continuo"}]};
+var DATA_FARMACEUTICA = {"moleculas":[{"nombre":"Ribavirina","interacciones":142,"efectividad":72},{"nombre":"Favipiravir","interacciones":98,"efectividad":65},{"nombre":"Remdesivir","interacciones":215,"efectividad":88},{"nombre":"Molnupiravir","interacciones":76,"efectividad":55},{"nombre":"Paxlovid","interacciones":189,"efectividad":91},{"nombre":"Galidesivir","interacciones":54,"efectividad":41},{"nombre":"EIDD-2801","interacciones":132,"efectividad":78},{"nombre":"AT-527","interacciones":47,"efectividad":35},{"nombre":"PF-07321332","interacciones":167,"efectividad":83},{"nombre":"VV116","interacciones":91,"efectividad":60}]};
+</script>
+<script>
+// ---- Estado global ----
+var provider = null;
+var signer = null;
+var userAddress = null;
+var currentDemo = 'logistica';
+var currentRenderer = null;
+var rainId = null;
+var isCoordinating = false;
+var demoData = {};
+var simulatedDonationTotal = 0;
 
-            centers.forEach(c => {
-                const marker = L.marker([c.lat/1000, c.lng/1000], {
-                    icon: L.divIcon({
-                        className: 'center-icon',
-                        html: '<div style="font-size:24px;">&#9968;</div>',
-                        iconSize: [30, 30]
-                    })
-                }).addTo(map);
-                marker.bindPopup(c.nombre);
-                centerMarkers.push(marker);
-            });
-        }
+// ---- Login ----
+document.getElementById('loginBtn').addEventListener('click', connectWallet);
 
-        // ---- Conectar wallet ----
-        async function connectWallet() {
-            const btn = document.getElementById('connect-btn');
+async function connectWallet() {
+  var errorEl = document.getElementById('loginError');
+  errorEl.style.display = 'none';
 
-            if (typeof window.ethereum === 'undefined') {
-                alert('MetaMask no detectado. Instala MetaMask para continuar.');
-                return;
-            }
+  if (typeof window.ethereum === 'undefined') {
+    errorEl.innerHTML = 'MetaMask no detectado. <a href="https://metamask.io" target="_blank" style="color:#00ff88;">Instálalo aquí</a>';
+    errorEl.style.display = 'block';
+    return;
+  }
 
-            try {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
+  try {
+    var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAddress = accounts[0];
 
-                const network = await provider.getNetwork();
-                if (network.chainId !== 10143 && network.chainId !== 10143) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x27A3' }]
-                        });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: '0x27A3',
-                                    chainName: 'Monad Testnet',
-                                    rpcUrls: [CONFIG.rpcUrl],
-                                    nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                                    blockExplorerUrls: ['https://testnet.monadexplorer.com']
-                                }]
-                            });
-                        }
-                    }
-                }
+    var prov = new ethers.providers.Web3Provider(window.ethereum);
+    var network = await prov.getNetwork();
 
-                signer = provider.getSigner();
-                engineContract = new ethers.Contract(CONFIG.engineAddress, [
-                    'function createJob(uint256 _totalTasks) external',
-                    'function commitTask(uint256 _jobId, uint256 _taskId, bytes32 _resultHash) external',
-                    'function revealTask(uint256 _jobId, uint256 _taskId, uint256 _result) external',
-                    'function getStats(uint256 _jobId) external view returns (uint256,uint256,uint256,uint256)'
-                ], signer);
-
-                donationContract = new ethers.Contract(CONFIG.donationAddress, [
-                    'function donate() external payable',
-                    'function totalDonations() external view returns (uint256)'
-                ], signer);
-
-                document.getElementById('donation-address').textContent =
-                    CONFIG.donationAddress.substring(0, 10) + '...' + CONFIG.donationAddress.substring(38);
-                document.getElementById('start-btn').disabled = false;
-                btn.textContent = 'WALLET CONECTADA';
-                btn.style.background = 'linear-gradient(135deg, #444, #333)';
-                btn.disabled = false;
-                document.getElementById('status').textContent =
-                    `Conectado: ${userAddress.substring(0,6)}...${userAddress.substring(38)}`;
-
-                // Cargar total de donaciones
-                updateDonationTotal();
-
-                window.ethereum.on('accountsChanged', () => location.reload());
-                window.ethereum.on('chainChanged', () => location.reload());
-            } catch (err) {
-                console.error('Error conectando wallet:', err);
-                document.getElementById('status').textContent = 'Error al conectar wallet';
-            }
-        }
-
-        async function updateDonationTotal() {
-            try {
-                if (donationContract) {
-                    const total = await donationContract.totalDonations();
-                    document.getElementById('donation-total').textContent =
-                        parseFloat(ethers.utils.formatEther(total)).toFixed(4) + ' MON';
-                }
-            } catch (e) { /* silencioso en demo */ }
-        }
-
-        async function sendDonation() {
-            if (!donationContract || !signer) {
-                alert('Conecta tu wallet primero');
-                return;
-            }
-            try {
-                const tx = await donationContract.donate({
-                    value: ethers.utils.parseEther('0.01')
-                });
-                await tx.wait();
-                updateDonationTotal();
-                document.getElementById('status').textContent = 'Donacion enviada exitosamente';
-            } catch (err) {
-                console.error('Error en donacion:', err);
-                document.getElementById('status').textContent = 'Error en donacion: ' + err.message.substring(0,50);
-            }
-        }
-
-        // ---- Coordinacion ----
-        function startCoordination() {
-            const btn = document.getElementById('start-btn');
-            btn.disabled = true;
-            btn.textContent = 'COORDINANDO...';
-            document.getElementById('status').textContent = 'Ejecutando calculos verificables...';
-
-            simulateRain();
-
-            // Simular progreso
-            let completed = 0;
-            const interval = setInterval(() => {
-                const batch = Math.floor(Math.random() * 150) + 50;
-                completed += batch;
-                if (completed >= families.length) completed = families.length;
-                document.getElementById('task-counter').textContent =
-                    `${completed} / ${families.length}`;
-
-                // Cambiar color de marcadores procesados
-                const doneIdx = Math.min(completed, markers.length);
-                for (let i = 0; i < doneIdx; i++) {
-                    if (!markers[i]._done) {
-                        markers[i].setStyle({ color: '#00ff88', fillColor: '#00ff88' });
-                        markers[i]._done = true;
-                    }
-                }
-
-                if (completed >= families.length) {
-                    clearInterval(interval);
-                    cancelAnimationFrame(animationId);
-                    triggerExplosion();
-                }
-            }, 180);
-        }
-
-        function simulateRain() {
-            const canvas = document.getElementById('overlay');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            const ctx = canvas.getContext('2d');
-
-            const particles = [];
-            for (let i = 0; i < 80; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * -canvas.height,
-                    speed: 2 + Math.random() * 6,
-                    alpha: 0.2 + Math.random() * 0.5
-                });
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    p.y += p.speed;
-                    if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
-                    ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
-                    ctx.fillRect(p.x, p.y, 2, 12);
-                });
-                animationId = requestAnimationFrame(animate);
-            }
-            animate();
-        }
-
-        function triggerExplosion() {
-            document.getElementById('status').textContent = '1.000 rutas. 1 bloque. 400 ms.';
-            document.getElementById('start-btn').textContent = 'COMPLETADO';
-            document.getElementById('verify-btn').disabled = false;
-            document.getElementById('dashboard').classList.add('explosion');
-
-            // Dibujar lineas de conexion en el canvas
-            const canvas = document.getElementById('overlay');
-            const ctx = canvas.getContext('2d');
-
-            if (map && families.length > 0 && centers.length > 0) {
-                const center = centers[0];
-
-                // Fase 1: lineas finas
-                setTimeout(() => {
-                    families.forEach((f, idx) => {
-                        setTimeout(() => {
-                            const from = map.latLngToContainerPoint([f.lat/1000, f.lng/1000]);
-                            const to = map.latLngToContainerPoint([center.lat/1000, center.lng/1000]);
-                            ctx.strokeStyle = `rgba(0,255,136,0.3)`;
-                            ctx.lineWidth = 1;
-                            ctx.beginPath();
-                            ctx.moveTo(from.x, from.y);
-                            ctx.lineTo(to.x, to.y);
-                            ctx.stroke();
-                        }, idx * 15);
-                    });
-                }, 200);
-
-                // Fase 2: explosion de brillo
-                setTimeout(() => {
-                    families.forEach((f, idx) => {
-                        setTimeout(() => {
-                            const from = map.latLngToContainerPoint([f.lat/1000, f.lng/1000]);
-                            const to = map.latLngToContainerPoint([center.lat/1000, center.lng/1000]);
-                            const gradient = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
-                            gradient.addColorStop(0, 'rgba(0,255,200,0.0)');
-                            gradient.addColorStop(0.5, 'rgba(0,255,136,0.8)');
-                            gradient.addColorStop(1, 'rgba(0,255,200,0.0)');
-                            ctx.strokeStyle = gradient;
-                            ctx.lineWidth = 2.5;
-                            ctx.shadowColor = '#00ff88';
-                            ctx.shadowBlur = 15;
-                            ctx.beginPath();
-                            ctx.moveTo(from.x, from.y);
-                            ctx.lineTo(to.x, to.y);
-                            ctx.stroke();
-                            ctx.shadowBlur = 0;
-                        }, idx * 25);
-                    });
-                }, 800);
-
-                // Fase 3: eco final
-                setTimeout(() => {
-                    const centerPt = map.latLngToContainerPoint([center.lat/1000, center.lng/1000]);
-                    let radius = 0;
-                    const expandInterval = setInterval(() => {
-                        radius += 8;
-                        ctx.strokeStyle = `rgba(0,255,136,${Math.max(0, 1 - radius/400)})`;
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.arc(centerPt.x, centerPt.y, radius, 0, Math.PI * 2);
-                        ctx.stroke();
-                        if (radius > 400) clearInterval(expandInterval);
-                    }, 30);
-                }, 1500);
-            }
-
-            // Hash simulado
-            document.getElementById('tx-hash').textContent =
-                '0x' + Array(64).fill(0)
-                    .map(() => Math.floor(Math.random()*16).toString(16)).join('');
-        }
-
-        function verifyOnChain() {
-            window.open('https://testnet.monadexplorer.com', '_blank');
-        }
-
-        // Resize handler
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('overlay');
-            if (canvas) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
+    if (network.chainId !== 10143) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x279F' }]
         });
-    </script>
+      } catch (switchErr) {
+        if (switchErr.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x279F',
+                chainName: 'Monad Testnet',
+                rpcUrls: [CONFIG.rpcUrl],
+                nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                blockExplorerUrls: ['https://testnet.monadexplorer.com']
+              }]
+            });
+          } catch (addErr) {
+            errorEl.textContent = 'Debes conectarte a Monad Testnet';
+            errorEl.style.display = 'block'; return;
+          }
+        } else {
+          errorEl.textContent = 'Debes conectarte a Monad Testnet';
+          errorEl.style.display = 'block'; return;
+        }
+      }
+    }
+
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
+
+    var balance = await provider.getBalance(userAddress);
+    var balStr = parseFloat(ethers.utils.formatEther(balance)).toFixed(4);
+
+    document.getElementById('walletAddr').textContent =
+      userAddress.substring(0, 6) + '...' + userAddress.substring(38);
+    document.getElementById('walletBalance').textContent = balStr + ' MON';
+    document.getElementById('statusMsg').textContent =
+      'Conectado: ' + userAddress.substring(0, 6) + '...' + userAddress.substring(38);
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    window.ethereum.on('accountsChanged', function() { location.reload(); });
+    window.ethereum.on('chainChanged', function() { location.reload(); });
+
+    loadDemo('logistica');
+  } catch (err) {
+    if (err.code === 4001) {
+      errorEl.textContent = 'Conexi\u00f3n rechazada por el usuario';
+    } else {
+      errorEl.textContent = 'Error: ' + (err.message || '').substring(0, 60);
+    }
+    errorEl.style.display = 'block';
+  }
+}
+
+document.getElementById('disconnectBtn').addEventListener('click', function() {
+  provider = null; signer = null; userAddress = null;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('loginError').style.display = 'none';
+});
+
+// ---- Demo selector ----
+document.getElementById('demoSelect').addEventListener('change', function(e) {
+  currentDemo = e.target.value;
+  loadDemo(currentDemo);
+  document.getElementById('coordBtn').disabled = false;
+  document.getElementById('verifyBtn').disabled = true;
+  document.getElementById('taskCounter').textContent = '0 / 0';
+  document.getElementById('statusMsg').textContent = 'Listo';
+});
+
+function loadDemo(demoKey) {
+  if (currentRenderer && currentRenderer.destroy) currentRenderer.destroy();
+  document.getElementById('main-container').innerHTML = '';
+
+  var data;
+  if (demoKey === 'logistica') data = DATA_LOGISTICA;
+  else if (demoKey === 'ciberseguridad') data = DATA_CIBERSEGURIDAD;
+  else if (demoKey === 'farmaceutica') data = DATA_FARMACEUTICA;
+  if (!data) return;
+
+  window._demoData = data;
+  demoData = data;
+
+  if (demoKey === 'logistica') {
+    initMapRenderer();
+    currentRenderer = { destroy: destroyMapRenderer };
+    var families = data.familias || [];
+    document.getElementById('taskCounter').textContent = '0 / ' + families.length;
+    document.getElementById('coordBtn').disabled = false;
+    document.getElementById('statusMsg').textContent = 'Demo de Logística Humanitaria lista';
+  } else if (demoKey === 'ciberseguridad') {
+    initCardsRenderer();
+    currentRenderer = { destroy: destroyCardsRenderer };
+    var endpoints = data.endpoints || [];
+    document.getElementById('taskCounter').textContent = '0 / ' + endpoints.length;
+    document.getElementById('statusMsg').textContent = 'Demo de Ciberseguridad lista';
+  } else if (demoKey === 'farmaceutica') {
+    initChartRenderer();
+    currentRenderer = { destroy: destroyChartRenderer };
+    var moleculas = data.moleculas || [];
+    document.getElementById('taskCounter').textContent = '0 / ' + moleculas.length;
+    document.getElementById('statusMsg').textContent = 'Demo Farmacéutica lista';
+  }
+}
+
+// ---- Coordinación ----
+document.getElementById('coordBtn').addEventListener('click', startCoordination);
+
+function startCoordination() {
+  if (isCoordinating) return;
+  isCoordinating = true;
+
+  var btn = document.getElementById('coordBtn');
+  btn.disabled = true;
+  btn.textContent = 'COORDINANDO...';
+  document.getElementById('statusMsg').textContent = 'Ejecutando cálculos verificables...';
+
+  startRain();
+
+  var total = 0;
+  if (currentDemo === 'logistica') total = (demoData.familias || []).length;
+  else if (currentDemo === 'ciberseguridad') total = (demoData.endpoints || []).length;
+  else if (currentDemo === 'farmaceutica') total = (demoData.moleculas || []).length;
+
+  var completed = 0;
+  var interval = setInterval(function() {
+    var batch = Math.floor(Math.random() * Math.max(2, Math.floor(total / 5))) + 1;
+    completed += batch;
+    if (completed >= total) completed = total;
+    document.getElementById('taskCounter').textContent = completed + ' / ' + total;
+
+    if (completed >= total) {
+      clearInterval(interval);
+      stopRain();
+      btn.textContent = 'COMPLETADO';
+
+      if (currentDemo === 'logistica') {
+        finishLogistics();
+      } else {
+        document.getElementById('verifyBtn').disabled = false;
+        document.getElementById('statusMsg').textContent = 'Proceso completado';
+        document.getElementById('taskCounter').textContent = total + ' / ' + total;
+      }
+    }
+  }, 180);
+}
+
+function finishLogistics() {
+  var families = demoData.familias || [];
+  var centers = demoData.centros || [];
+
+  document.getElementById('statusMsg').textContent = '1.000 rutas. 1 bloque. 400 ms.';
+  document.getElementById('verifyBtn').disabled = false;
+  document.getElementById('coordBtn').textContent = 'COMPLETADO';
+
+  if (typeof drawGreenLines === 'function') {
+    drawGreenLines(families, centers);
+  }
+
+  var hash = '0x';
+  for (var i = 0; i < 64; i++) hash += Math.floor(Math.random() * 16).toString(16);
+  document.getElementById('statusMsg').textContent = '1.000 rutas. 1 bloque. 400 ms.';
+  var statusEl = document.getElementById('statusMsg');
+  statusEl.innerHTML = '1.000 rutas. 1 bloque. 400 ms.<br><span style="font-size:10px;color:#00ffcc;">' + hash + '</span>';
+}
+
+document.getElementById('verifyBtn').addEventListener('click', function() {
+  window.open('https://testnet.monadexplorer.com', '_blank');
+});
+
+// ---- Lluvia de partículas ----
+function startRain() {
+  var canvas = document.getElementById('rain-canvas');
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  var ctx = canvas.getContext('2d');
+
+  var particles = [];
+  for (var i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      speed: 2 + Math.random() * 6,
+      alpha: 0.2 + Math.random() * 0.5
+    });
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(function(p) {
+      p.y += p.speed;
+      if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
+      ctx.fillStyle = 'rgba(255,255,255,' + p.alpha + ')';
+      ctx.fillRect(p.x, p.y, 2, 12);
+    });
+    rainId = requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function stopRain() {
+  if (rainId) { cancelAnimationFrame(rainId); rainId = null; }
+  var canvas = document.getElementById('rain-canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.style.display = 'none';
+}
+
+// ---- Donaciones ----
+document.getElementById('donateBtn').addEventListener('click', function() {
+  if (!provider || !signer) {
+    alert('Conecta tu wallet primero');
+    return;
+  }
+  simulatedDonationTotal += 0.01;
+  document.getElementById('donationTotal').textContent =
+    simulatedDonationTotal.toFixed(4) + ' MON';
+  document.getElementById('statusMsg').textContent = 'Donación enviada exitosamente';
+});
+
+// ---- Resize ----
+window.addEventListener('resize', function() {
+  var canvas = document.getElementById('rain-canvas');
+  if (canvas) { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+});
+
+// ---- Auto-arranque ----
+(function() {
+  window._demoData = DATA_LOGISTICA;
+  demoData = DATA_LOGISTICA;
+  if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.request({ method: 'eth_accounts' }).then(function(accs) {
+      if (accs.length > 0) { /* auto-login possible in future */ }
+    }).catch(function() {});
+  }
+})();
+</script>
 </body>
 </html>

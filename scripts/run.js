@@ -1,117 +1,124 @@
-const { ethers } = require("ethers");
-const fs = require("fs");
-require("dotenv").config();
+// run.js — Script de coordinación on-chain para Monad Testnet (ethers v6)
+// Uso: node scripts/run.js [archivo_json]
+const ethers = require('ethers');
+const fs = require('fs');
+const path = require('path');
 
-const data = JSON.parse(
-  fs.readFileSync(__dirname + "/emergencia_choco.json", "utf8")
-);
-const families = data.familias;
-const centers = data.centros;
-
-const RPC_URL = process.env.RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const ENGINE_ADDRESS = process.env.ENGINE_ADDRESS;
-const WORKER_ADDRESS = process.env.WORKER_ADDRESS;
-
-const ENGINE_ABI = [
-  "function createJob(uint256 _totalTasks) external",
-  "function commitTask(uint256 _jobId, uint256 _taskId, bytes32 _resultHash) external",
-  "function revealTask(uint256 _jobId, uint256 _taskId, uint256 _result) external",
-  "function getStats(uint256 _jobId) external view returns (uint256 total, uint256 completed, uint256 createdBlock, uint256 completedBlock)",
-];
-
-const WORKER_ABI = [
-  "function solve(int256 lat1, int256 lng1, int256 lat2, int256 lng2) public pure returns (uint256)",
-];
+const MONAD_CHAIN_ID = 10143;
+const GAS_PRICE = 50_000_000_000n; // 50 gwei
+const GAS_LIMIT = 500_000;
 
 async function main() {
-  console.log("Monad Nexus - Iniciando coordinacion...\n");
+    const dataFile = process.argv[2] || path.join(__dirname, 'data', 'emergencia_choco.json');
+    const raw = fs.readFileSync(dataFile, 'utf-8');
+    const data = JSON.parse(raw);
+    const families = data.familias || [];
+    const centers = data.centros || [];
 
-  const provider = new ethers.JsonRpcProvider(RPC_URL, undefined, {
-    staticNetwork: new ethers.Network("monad-testnet", 10143),
-  });
-  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+    console.log('╔══════════════════════════════════════════╗');
+    console.log('║        MONAD NEXUS — COORDINACIÓN        ║');
+    console.log('╚══════════════════════════════════════════╝');
+    console.log(`Cargados ${families.length} familias y ${centers.length} centros desde ${dataFile}`);
 
-  const engine = new ethers.Contract(ENGINE_ADDRESS, ENGINE_ABI, wallet);
-  const worker = new ethers.Contract(WORKER_ADDRESS, WORKER_ABI, wallet);
-
-  const totalTasks = families.length;
-  console.log(`Total de tareas: ${totalTasks}`);
-  console.log(`Centros de ayuda: ${centers.length}\n`);
-
-  const balance = await provider.getBalance(wallet.address);
-  console.log(`Saldo: ${ethers.formatEther(balance)} MON\n`);
-
-  // 1. Crear trabajo
-  console.log("Creando trabajo...");
-  let tx = await engine.createJob(totalTasks, { gasLimit: 500000 });
-  await tx.wait();
-  console.log("Trabajo creado\n");
-
-  // 2. Fase Commit
-  console.log("Fase 1: Commit de resultados...");
-  for (let i = 0; i < totalTasks; i++) {
-    const hash = ethers.keccak256(
-      ethers.toUtf8Bytes(`task-${i}-pre`)
-    );
-    try {
-      tx = await engine.commitTask(1, i, hash, { gasLimit: 200000 });
-      await tx.wait();
-      if (i % 100 === 0)
-        console.log(`   Commit: ${i}/${totalTasks}`);
-    } catch (e) {
-      console.log(`   Error en commit ${i}: ${e.message}`);
+    // Cargar .env
+    const envPath = path.join(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+        const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+        lines.forEach(line => {
+            const [key, ...vals] = line.split('=');
+            if (key && vals.length) process.env[key.trim()] = vals.join('=').trim();
+        });
     }
-  }
-  console.log("Fase Commit completada\n");
 
-  // 3. Fase Reveal
-  console.log("Fase 2: Reveal de resultados...");
-  const center = centers[0];
-  for (let i = 0; i < totalTasks; i++) {
-    const family = families[i];
+    const rpcUrl = process.env.RPC_URL;
+    const privateKey = process.env.PRIVATE_KEY;
+    const engineAddr = process.env.ENGINE_ADDRESS;
+    const workerAddr = process.env.WORKER_ADDRESS;
+    const donationAddr = process.env.DONATION_ADDRESS;
 
-    try {
-      const result = await worker.solve(
-        family.lat,
-        family.lng,
-        center.lat,
-        center.lng
-      );
+    if (!rpcUrl || !privateKey || !engineAddr || !workerAddr) {
+        console.error('❌ ERROR: Completa .env con RPC_URL, PRIVATE_KEY, ENGINE_ADDRESS y WORKER_ADDRESS');
+        process.exit(1);
+    }
 
-      tx = await engine.revealTask(1, i, result, {
-        gasLimit: 200000,
-      });
-      await tx.wait();
-      tx = await engine.revealTask(1, i, result, {
-        gasLimit: 200000,
-      });
-      await tx.wait();
+    // Conectar a Monad Testnet con ENS desactivado
+    const network = ethers.Network.from(MONAD_CHAIN_ID);
+    const provider = new ethers.JsonRpcProvider(rpcUrl, network, { staticNetwork: network });
+    const wallet = new ethers.Wallet(privateKey, provider);
 
-      if (i % 100 === 0)
-        console.log(
-          `   Reveal: ${i}/${totalTasks} - Distancia: ${result}m`
+    console.log(`\nWallet: ${wallet.address}`);
+
+    const balance = await provider.getBalance(wallet.address);
+    console.log(`Saldo: ${ethers.formatEther(balance)} MON`);
+
+    if (balance === 0n) {
+        console.error('❌ ERROR: La wallet no tiene fondos en Monad Testnet.');
+        console.log('   Obtén MON gratis en el faucet: https://testnet.monad.xyz/faucet');
+        process.exit(1);
+    }
+
+    // Instanciar contratos
+    const engineArtifact = [
+        'function createJob(uint256 _totalTasks) external',
+        'function completeTask(uint256 _taskId, uint256 _result) external',
+        'function getStats() external view returns (uint256 total, uint256 completed, uint256 createdBlock, uint256 completedBlock)',
+        'function totalTasks() external view returns (uint256)',
+        'function completedTasks() external view returns (uint256)',
+        'function allDone() external view returns (bool)',
+        'function jobBlock() external view returns (uint256)',
+        'function completedBlock() external view returns (uint256)'
+    ];
+
+    const workerArtifact = [
+        'function solve(int256 lat1, int256 lng1, int256 lat2, int256 lng2) external pure returns (uint256)'
+    ];
+
+    const engine = new ethers.Contract(engineAddr, engineArtifact, wallet);
+    const worker = new ethers.Contract(workerAddr, workerArtifact, wallet);
+
+    // Crear job
+    console.log(`\n📋 Creando job con ${families.length} tareas...`);
+    const tx1 = await engine.createJob(families.length, {
+        gasPrice: GAS_PRICE,
+        gasLimit: GAS_LIMIT
+    });
+    const receipt1 = await tx1.wait();
+    console.log(`   ✅ Job creado en tx: ${receipt1.hash}`);
+
+    // Ejecutar tareas
+    console.log(`\n⚙️  Ejecutando ${families.length} tareas...`);
+    for (let i = 0; i < families.length; i++) {
+        const f = families[i];
+        const c = centers[i % centers.length];
+
+        const result = await worker.solve(
+            BigInt(f.lat), BigInt(f.lng),
+            BigInt(c.lat), BigInt(c.lng)
         );
-    } catch (e) {
-      console.log(`   Error en reveal ${i}: ${e.message}`);
-    }
-  }
-  console.log("Fase Reveal completada\n");
 
-  // 4. Verificar estadisticas finales
-  const stats = await engine.getStats(1);
-  console.log("ESTADISTICAS FINALES:");
-  console.log(`   Total tareas: ${stats.total}`);
-  console.log(`   Completadas: ${stats.completed}`);
-  console.log(`   Bloque creacion: ${stats.createdBlock}`);
-  console.log(`   Bloque finalizacion: ${stats.completedBlock}`);
-  console.log(
-    `\nVerificar en: https://testnet.monadexplorer.com/address/${ENGINE_ADDRESS}`
-  );
-  console.log("\nMonad Nexus - Coordinacion completada exitosamente");
+        const tx = await engine.completeTask(f.id, result, {
+            gasPrice: GAS_PRICE,
+            gasLimit: GAS_LIMIT
+        });
+        await tx.wait();
+
+        if ((i + 1) % 100 === 0 || i === families.length - 1) {
+            console.log(`   Progreso: ${i + 1}/${families.length} tareas completadas`);
+        }
+    }
+
+    // Mostrar estadísticas finales
+    const stats = await engine.getStats();
+    console.log(`\n📊 Estadísticas finales:`);
+    console.log(`   Total tareas:     ${stats.total}`);
+    console.log(`   Completadas:      ${stats.completed}`);
+    console.log(`   Bloque creación:  ${stats.createdBlock}`);
+    console.log(`   Bloque fin:       ${stats.completedBlock}`);
+    console.log(`\n🔗 Explorador: https://testnet.monadexplorer.com/tx/${receipt1.hash}`);
+    console.log(`\n✅ Coordinación completada exitosamente`);
 }
 
-main().catch((err) => {
-  console.error("Error fatal:", err);
-  process.exit(1);
+main().catch(err => {
+    console.error('❌ Error:', err.message || err);
+    process.exit(1);
 });
