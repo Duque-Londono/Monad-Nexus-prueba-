@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0f;
+  --green: #00ff88;
+  --green-dark: #00cc66;
+  --cyan: #00ffcc;
+  --red: #ff4477;
+  --red-dark: #cc2266;
+  --text: #e0e0e0;
+  --muted: #888;
+  --border: #333;
+  --card-bg: rgba(10,10,15,0.92);
+  --surface: #1a1a24;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+@keyframes loginPulse {
+  0%, 100% { opacity: 1 }
+  50% { opacity: 0.7 }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1 }
+  50% { opacity: 0.3 }
+}
+
+@keyframes explode {
+  0% { transform: scale(0.5); opacity: 0.5 }
+  50% { transform: scale(1.1) }
+  100% { transform: scale(1); opacity: 1 }
+}
+
+.explosion {
+  animation: explode 0.6s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
